@@ -1,0 +1,4 @@
+cookie:
+  name: ttt_auth_cookie
+  key: super_secret_cookie_key
+  expiry_days: 2
