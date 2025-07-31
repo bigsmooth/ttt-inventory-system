@@ -22,7 +22,6 @@ def manager_dashboard(user):
         sku_info = db.get_all_sku_info()
         info_dict = {row[0]: (row[1], row[2]) for row in sku_info}  # {sku: (name, barcode)}
 
-        # Build dropdown display list
         dropdown_options = [
             f"{info_dict[sku][0]} ({sku}) - {info_dict[sku][1]}" if sku in info_dict else sku
             for sku, _ in sku_data
@@ -35,7 +34,6 @@ def manager_dashboard(user):
 
         qty_dict = {sku: qty for sku, qty in sku_data}
         st.write(f"Current quantity: **{qty_dict.get(selected_sku, 0)}**")
-
 
         action = st.radio("Action", ["IN", "OUT"], horizontal=True)
         qty = st.number_input("Quantity", min_value=1, step=1)
@@ -83,9 +81,8 @@ def manager_dashboard(user):
     with tabs[4]:
         low_stock_threshold = st.slider("Alert threshold", min_value=1, max_value=50, value=10)
         low_stock = []
-        if skus:
-            low_stock = [(sku, qty) for sku, qty in skus if isinstance(qty, int) and qty < low_stock_threshold]
-
+        if sku_data:
+            low_stock = [(sku, qty) for sku, qty in sku_data if isinstance(qty, int) and qty < low_stock_threshold]
 
         if low_stock:
             df = pd.DataFrame(low_stock, columns=["SKU", "Quantity"])
