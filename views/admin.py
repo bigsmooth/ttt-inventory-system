@@ -11,10 +11,9 @@ def admin_dashboard(user):
     st.title("Admin Dashboard 🌚")
 
     tabs = st.tabs([
-    "🏦 Inventory", "📋 Logs", "📊 Chart", "📢 Messages",
-    "⚖️ Manage SKUs", "🔐 User Access", "🏢 Manage Hubs", "📥 Upload SKUs"
-])
-
+        "🏦 Inventory", "📋 Logs", "📊 Chart", "📢 Messages",
+        "⚖️ Manage SKUs", "🔐 User Access", "🏢 Manage Hubs", "📥 Upload SKUs"
+    ])
 
     inventory = db.get_all_inventory()
     df = pd.DataFrame(inventory, columns=["SKU", "Hub", "Quantity"])
@@ -81,11 +80,11 @@ def admin_dashboard(user):
 
     with tabs[4]:
         st.subheader("⚖️ Add or Remove SKUs")
-        hubs = ["HUB1", "HUB2", "HUB3", "RETAIL"]
+        hubs = [w[0] for w in db.get_all_warehouses()]
         action = st.radio("Action", ["Add", "Remove"], horizontal=True)
         hub = st.selectbox("Select Hub", hubs)
-        # Get SKUs with names and barcodes from DB
-        sku_rows = db.get_all_sku_info()  # New function below
+
+        sku_rows = db.get_all_sku_info()
         sku_options = [f"{row[0]} — {row[1]} — {row[2]}" for row in sku_rows]
         sku_map = {display: row[0] for display, row in zip(sku_options, sku_rows)}
 
@@ -113,7 +112,7 @@ def admin_dashboard(user):
         new_username = st.text_input("Username")
         new_password = st.text_input("Password", type="password")
         new_role = st.selectbox("Role", ["admin", "manager", "supplier", "retail"])
-        new_hubs = st.multiselect("Hubs", ["HUB1", "HUB2", "HUB3", "RETAIL"])
+        new_hubs = st.multiselect("Hubs", [w[0] for w in db.get_all_warehouses()])
         if st.button("Create User"):
             if new_username and new_password and new_role:
                 hashed = hashlib.sha256(new_password.encode()).hexdigest()
@@ -172,7 +171,6 @@ def admin_dashboard(user):
         else:
             st.info("No hubs available.")
 
-        # Upload SKUs tab
     with tabs[7]:
         st.subheader("📥 Upload & Seed SKUs from CSV")
         st.info("Upload a CSV with columns: `SKU`, `Product Name`, and `Barcode Number`.")
@@ -183,7 +181,6 @@ def admin_dashboard(user):
             try:
                 df = pd.read_csv(uploaded_file)
 
-                # Preview
                 st.dataframe(df.head(), use_container_width=True)
 
                 if st.button("Seed SKUs into Database"):
@@ -210,6 +207,5 @@ def admin_dashboard(user):
                     st.success(f"✅ Seeded {inserted} SKUs into `sku_info` table.")
             except Exception as e:
                 st.error(f"❌ Failed to process file: {e}")
-        
 
 __all__ = ["admin_dashboard"]
