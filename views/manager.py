@@ -82,7 +82,10 @@ def manager_dashboard(user):
 
     with tabs[4]:
         low_stock_threshold = st.slider("Alert threshold", min_value=1, max_value=50, value=10)
-        low_stock = [(sku, qty) for sku, qty in skus if qty < low_stock_threshold]
+        low_stock = []
+        if skus:
+            low_stock = [(sku, qty) for sku, qty in skus if isinstance(qty, int) and qty < low_stock_threshold]
+
 
         if low_stock:
             df = pd.DataFrame(low_stock, columns=["SKU", "Quantity"])

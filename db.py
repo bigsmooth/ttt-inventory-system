@@ -174,7 +174,7 @@ def delete_user(username):
 def get_all_sku_info():
     with get_conn() as conn:
         return conn.execute("SELECT sku, name, barcode FROM sku_info ORDER BY name").fetchall()
-        
+
 
 # --- WAREHOUSES ---
 
@@ -223,12 +223,22 @@ def seed_skus(csv_path="Master_Updated_Barcode_Inventory.csv"):
         print(f"❌ CSV file not found at path: {csv_path}")
     except Exception as e:
         print(f"❌ Error while seeding SKUs: {e}")
+        
+def clean_junk_skus():
+    junk = ["ADFD", "ADAFD", "ADDFD", "TEST", "BLACK-WHITE", "BLACKWHITE", "RAINBOW", "HOT-PINK"]
+    with get_conn() as conn:
+        for sku in junk:
+            conn.execute("DELETE FROM inventory WHERE sku=?", (sku,))
+            conn.execute("DELETE FROM sku_info WHERE sku=?", (sku,))
+    print(f"✅ Removed {len(junk)} junk/test SKUs.")
 
 
 # --- Init Run ---
 if __name__ == "__main__":
     init_db()
     seed_warehouses()
-    seed_skus()  # Automatically loads SKUs from the CSV
+    seed_skus()
+    clean_junk_skus()  # 👈 optional
     print("✅ Database initialized with SKUs.")
+
 
