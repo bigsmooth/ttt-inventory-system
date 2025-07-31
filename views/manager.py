@@ -18,14 +18,24 @@ def manager_dashboard(user):
         if "selected_sku" not in st.session_state:
             st.session_state["selected_sku"] = None
 
-        skus = db.get_skus_for_hub(hub)
-        sku_dict = {sku: qty for sku, qty in skus}
-        sku_list = list(sku_dict.keys())
+        sku_data = db.get_skus_for_hub(hub)
+        sku_info = db.get_all_sku_info()
+        info_dict = {row[0]: (row[1], row[2]) for row in sku_info}  # {sku: (name, barcode)}
 
-        selected_sku = st.selectbox("SKU", sku_list, index=sku_list.index(st.session_state["selected_sku"]) if st.session_state["selected_sku"] in sku_list else 0)
+        # Build dropdown display list
+        dropdown_options = [
+            f"{info_dict[sku][0]} ({sku}) - {info_dict[sku][1]}" if sku in info_dict else sku
+            for sku, _ in sku_data
+        ]
+        sku_map = {opt: sku for opt, (sku, _) in zip(dropdown_options, sku_data)}
+
+        selection = st.selectbox("Select SKU", dropdown_options)
+        selected_sku = sku_map[selection]
         st.session_state["selected_sku"] = selected_sku
 
-        st.write(f"Current quantity: **{sku_dict.get(selected_sku, 0)}**")
+        qty_dict = {sku: qty for sku, qty in sku_data}
+        st.write(f"Current quantity: **{qty_dict.get(selected_sku, 0)}**")
+
 
         action = st.radio("Action", ["IN", "OUT"], horizontal=True)
         qty = st.number_input("Quantity", min_value=1, step=1)
