@@ -1,10 +1,9 @@
 import streamlit as st
-from datetime import date
 import pandas as pd
 import altair as alt
+import hashlib
 import db
 from utils import require_login
-import hashlib
 
 def admin_dashboard(user):
     require_login()
@@ -80,7 +79,7 @@ def admin_dashboard(user):
 
     with tabs[4]:
         st.subheader("⚖️ Add or Remove SKUs")
-        hubs = [w[0] for w in db.get_all_warehouses()]
+        hubs = ["HUB1", "HUB2", "HUB3", "RETAIL"]
         action = st.radio("Action", ["Add", "Remove"], horizontal=True)
         hub = st.selectbox("Select Hub", hubs)
 
@@ -89,7 +88,11 @@ def admin_dashboard(user):
         sku_map = {display: row[0] for display, row in zip(sku_options, sku_rows)}
 
         selected_sku_display = st.selectbox("SKU", sku_options)
-        sku = sku_map[selected_sku_display]
+
+        sku = sku_map.get(selected_sku_display)
+        if not sku:
+            st.error("❌ SKU not found. Please make sure your SKU info table is correctly populated.")
+            st.stop()
 
         qty = st.number_input("Quantity", min_value=1, step=1)
         if st.button("Apply Change"):
@@ -112,7 +115,7 @@ def admin_dashboard(user):
         new_username = st.text_input("Username")
         new_password = st.text_input("Password", type="password")
         new_role = st.selectbox("Role", ["admin", "manager", "supplier", "retail"])
-        new_hubs = st.multiselect("Hubs", [w[0] for w in db.get_all_warehouses()])
+        new_hubs = st.multiselect("Hubs", ["HUB1", "HUB2", "HUB3", "RETAIL"])
         if st.button("Create User"):
             if new_username and new_password and new_role:
                 hashed = hashlib.sha256(new_password.encode()).hexdigest()
@@ -174,13 +177,11 @@ def admin_dashboard(user):
     with tabs[7]:
         st.subheader("📥 Upload & Seed SKUs from CSV")
         st.info("Upload a CSV with columns: `SKU`, `Product Name`, and `Barcode Number`.")
-
         uploaded_file = st.file_uploader("Upload SKU CSV", type="csv")
 
         if uploaded_file:
             try:
                 df = pd.read_csv(uploaded_file)
-
                 st.dataframe(df.head(), use_container_width=True)
 
                 if st.button("Seed SKUs into Database"):

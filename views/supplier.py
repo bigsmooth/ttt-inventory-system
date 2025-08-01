@@ -48,4 +48,13 @@ def supplier_dashboard(user):
         else:
             st.info("No shipments recorded yet.")
 
+import streamlit as st
+from utils import require_login
+
+def supplier_upload(user):
+    require_login()
+    st.title("📦 Supplier Upload")
+    st.info("This section is under construction.")
+            
+
 __all__ = ["supplier_dashboard"]
