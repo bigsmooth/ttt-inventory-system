@@ -1,6 +1,6 @@
 import streamlit as st
 from auth import login_user
-from views import admin_dashboard, manager_dashboard, supplier_upload, retail_inventory
+from views import admin_dashboard, manager_dashboard, retail_dashboard
 from utils import require_login
 import db
 
