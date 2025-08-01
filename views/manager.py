@@ -20,7 +20,7 @@ def manager_dashboard(user):
 
         sku_data = db.get_skus_for_hub(hub)
         sku_info = db.get_all_sku_info()
-        info_dict = {row[0]: (row[1], row[2]) for row in sku_info}  # {sku: (name, barcode)}
+        info_dict = {row[0]: (row[1], row[2]) for row in sku_info}
 
         dropdown_options = [
             f"{info_dict[sku][0]} ({sku}) - {info_dict[sku][1]}" if sku in info_dict else sku
@@ -28,25 +28,27 @@ def manager_dashboard(user):
         ]
         sku_map = {opt: sku for opt, (sku, _) in zip(dropdown_options, sku_data)}
 
-        selection = st.selectbox("Select SKU", dropdown_options)
-        selected_sku = sku_map[selection]
-        st.session_state["selected_sku"] = selected_sku
+        if dropdown_options:
+            selection = st.selectbox("Select SKU", dropdown_options)
+            selected_sku = sku_map[selection]
+            st.session_state["selected_sku"] = selected_sku
+            qty_dict = {sku: qty for sku, qty in sku_data}
+            st.write(f"Current quantity: **{qty_dict.get(selected_sku, 0)}**")
 
-        qty_dict = {sku: qty for sku, qty in sku_data}
-        st.write(f"Current quantity: **{qty_dict.get(selected_sku, 0)}**")
+            action = st.radio("Action", ["IN", "OUT"], horizontal=True)
+            qty = st.number_input("Quantity", min_value=1, step=1)
+            comment = st.text_input("Comment (optional)")
 
-        action = st.radio("Action", ["IN", "OUT"], horizontal=True)
-        qty = st.number_input("Quantity", min_value=1, step=1)
-        comment = st.text_input("Comment (optional)")
+            if st.button("Submit"):
+                db.update_inventory(selected_sku, hub, qty, action)
+                db.log_action(user["username"], selected_sku, hub, action, qty, comment)
+                st.session_state["last_action"] = f"{action} {qty} of {selected_sku}"
+                st.success(f"✅ {action} {qty} units of {selected_sku} recorded for {hub}")
 
-        if st.button("Submit"):
-            db.update_inventory(selected_sku, hub, qty, action)
-            db.log_action(user["username"], selected_sku, hub, action, qty, comment)
-            st.session_state["last_action"] = f"{action} {qty} of {selected_sku}"
-            st.success(f"✅ {action} {qty} units of {selected_sku} recorded for {hub}")
-
-        if st.session_state["last_action"]:
-            st.caption(f"Last action: {st.session_state['last_action']}")
+            if st.session_state["last_action"]:
+                st.caption(f"Last action: {st.session_state['last_action']}")
+        else:
+            st.warning("⚠️ No SKUs available for this hub.")
 
     with tabs[1]:
         raw_logs = db.get_logs_for_hub(hub)
@@ -80,9 +82,7 @@ def manager_dashboard(user):
 
     with tabs[4]:
         low_stock_threshold = st.slider("Alert threshold", min_value=1, max_value=50, value=10)
-        low_stock = []
-        if sku_data:
-            low_stock = [(sku, qty) for sku, qty in sku_data if isinstance(qty, int) and qty < low_stock_threshold]
+        low_stock = [(sku, qty) for sku, qty in sku_data if isinstance(qty, int) and qty < low_stock_threshold]
 
         if low_stock:
             df = pd.DataFrame(low_stock, columns=["SKU", "Quantity"])
@@ -97,7 +97,7 @@ def manager_dashboard(user):
         subject = st.text_input("Subject")
         message = st.text_area("Message")
         if st.button("Send Message"):
-            db.log_action(user["username"], selected_sku, hub, "MESSAGE", 0, f"SUBJECT: {subject} // {message}")
+            db.log_action(user["username"], st.session_state.get("selected_sku", "N/A"), hub, "MESSAGE", 0, f"SUBJECT: {subject} // {message}")
             st.success("📨 Message sent to admin!")
 
         with st.expander("📬 Admin Replies to Your Hub"):
@@ -108,7 +108,6 @@ def manager_dashboard(user):
 
                 st.markdown("### ✏️ Reply to Admin")
                 selected_reply = st.selectbox("Select a reply to respond to", df["comment"])
-                match_row = df[df["comment"] == selected_reply].iloc[0]
                 reply_msg = st.text_area("Your Response")
                 if st.button("Send Response"):
                     db.log_action(user["username"], "N/A", hub, "MESSAGE", 0, f"RE: {selected_reply} // {reply_msg}")
